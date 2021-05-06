@@ -307,6 +307,16 @@ RCT_EXPORT_METHOD(getPhotos:(NSDictionary *)params
       NSString *_Nullable originalFilename = NULL;
       PHAssetResource *_Nullable resource = NULL;
       NSNumber* fileSize = [NSNumber numberWithInt:0];
+      NSString *_Nullable mimeType = NULL;
+        
+      NSArray<PHAssetResource *> *const assetResources = [PHAssetResource assetResourcesForAsset:asset];
+      resource = [assetResources firstObject];
+        
+      // mimetype of the resource
+      if (resource) {
+          CFStringRef const uti = (__bridge CFStringRef _Nonnull)(resource.uniformTypeIdentifier);
+          mimeType = (NSString *)CFBridgingRelease(UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType));
+      }
       
       if (includeFilename || includeFileSize || [mimeTypes count] > 0) {
         // Get underlying resources of an asset - this includes files as well as details about edited PHAssets
@@ -359,28 +369,11 @@ RCT_EXPORT_METHOD(getPhotos:(NSDictionary *)params
         return;
       }
 
-      NSString *assetMediaTypeLabel = (asset.mediaType == PHAssetMediaTypeVideo
-                                            ? @"video"
-                                             : (asset.mediaType == PHAssetMediaTypeImage
-                                                ? @"image"
-                                                : (asset.mediaType == PHAssetMediaTypeAudio
-                                                  ? @"audio"
-                                                  : @"unknown")));
-        
-      NSString *const extension = [asset valueForKey:@"uniformTypeIdentifier"];
-        
-      if (extension.length > 0) {
-          NSArray const *extensionArr = [extension componentsSeparatedByString:@"."];
-          if (extensionArr && extensionArr.count > 1) {
-              assetMediaTypeLabel = [assetMediaTypeLabel stringByAppendingString: @"/"];
-              assetMediaTypeLabel = [assetMediaTypeLabel stringByAppendingString:extensionArr[1]];
-          }
-      }
       CLLocation *const loc = asset.location;
 
       [assets addObject:@{
         @"node": @{
-          @"type": assetMediaTypeLabel, // TODO: switch to mimeType?
+          @"type": mimeType,
           @"group_name": currentCollectionName,
           @"image": @{
               @"uri": uri,
